@@ -1,0 +1,49 @@
+/** 
+ * 
+ */
+package events
+
+import java.util.UUID
+import java.util.ArrayList
+import math.Point2i
+
+import environment.Body
+/** 
+ * @author Justin
+ * 
+ */
+event Perception{
+	val bodies : ArrayList<Body>
+	val id : UUID
+	val position : Point2i
+	
+	new (id : UUID, bodies : ArrayList<Body>, position : Point2i){
+		this.id = id
+		this.bodies = bodies
+		this.position = position
+	}
+}
+
+event Action{
+	val position : Point2i
+	val id : UUID
+	val name : String
+	
+	new(position : Point2i, id : UUID, name : String){
+		this.position = position
+		this.id = id
+		this.name = name
+	}
+}
+
+event UpdateGUI{
+	val bodies : ArrayList<Body>
+	val nbHumans : int
+	val nbZombies : int
+	
+	new (bodies : ArrayList<Body>, nbHumans : int, nbZombies : int){
+		this.bodies = bodies
+		this.nbHumans = nbHumans
+		this.nbZombies = nbZombies
+	}
+}

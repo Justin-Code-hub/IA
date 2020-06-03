@@ -1,0 +1,170 @@
+/** 
+ * 
+ */
+package environment
+
+import io.sarl.core.AgentKilled
+import io.sarl.core.AgentSpawned
+import io.sarl.core.ContextJoined
+import io.sarl.core.ContextLeft
+import io.sarl.core.Destroy
+import io.sarl.core.Initialize
+import io.sarl.core.Logging
+import io.sarl.core.MemberJoined
+import io.sarl.core.MemberLeft
+import io.sarl.core.ParticipantJoined
+import io.sarl.core.ParticipantLeft
+import io.sarl.core.SpaceCreated
+import io.sarl.core.SpaceDestroyed
+import math.Point2i
+import io.sarl.core.Lifecycle
+import io.sarl.core.DefaultContextInteractions
+import java.util.ArrayList
+import java.util.UUID
+import java.util.Timer
+import java.util.Calendar
+import ui.GUI
+
+import events.*
+/** 
+ * @author Justin
+ * 
+ */
+agent Environment {
+	uses Logging, Bodies, Lifecycle, DefaultContextInteractions
+	
+	var width : int
+	var height : int
+	var nbHumans : int
+	var nbZombies : int
+	//var bodyList : Body[] = newArrayOfSize()
+	var bodyList : ArrayList<Body> = newArrayList
+	var actionList : ArrayList<Action> = newArrayList
+	var ignoreAction = false
+	var gui : GUI
+	
+	on Initialize {
+		info("The environment is started.")
+		
+		this.gui = occurrence.parameters.get(0)  as GUI
+		this.width = occurrence.parameters.get(1) as Integer
+		this.height = occurrence.parameters.get(2) as Integer
+		this.nbHumans = occurrence.parameters.get(3) as Integer
+		this.nbZombies = occurrence.parameters.get(4) as Integer
+		
+		setSkill(new BodiesSkill)
+		
+		for (i : 0 ..< this.nbHumans as Integer) {
+			var body = createHuman(randomPosition)
+			this.bodyList.add(body)
+			
+			spawn(HumanAgent, body.id)
+		}
+
+		for (i : 0 ..< this.nbZombies as Integer) {
+			var body = createZombie(randomPosition)
+			this.bodyList.add(body)
+			spawn(ZombieAgent, body.id)
+		}
+		
+		run
+		
+	}
+	
+	def randomPosition{
+		var posX = 0 + (Math.random() * ((this.width - 0) + 1)) as Integer
+		var posY = 0 + (Math.random() * ((this.height - 0) + 1)) as Integer
+		info(posX + "/" + posY)
+		return new Point2i(posX, posY)
+	}
+	
+	def run{
+		info("RUNNNNN")
+		for (b : this.bodyList) {
+			emit(new Perception(b.id, this.bodyList, b.position))
+		}
+		
+	}
+	
+	on Action {
+		info("Action received")
+		this.actionList.add(occurrence)	
+			
+		if (this.actionList.size == this.nbHumans + this.nbZombies) {
+			Thread.sleep(1000)
+			moveBodies
+			emit(new UpdateGUI(this.bodyList, this.nbHumans, this.nbZombies))
+			info(this.bodyList.size)
+			this.actionList.clear
+			run
+		}
+	}
+	
+	def moveBodies{
+		this.bodyList.clear
+		for(action : this.actionList){
+			if (action.name.equals("Human")) {
+				this.bodyList.add(createHuman(action.position, action.id))
+			}
+			else if (action.name.equals("Zombie")) {
+				this.bodyList.add(createZombie(action.position, action.id))
+			}		
+		}
+	}
+	
+	on Destroy {
+		// Event trigger when the agent is destroyed from the system.
+		// You should put all the resource releasing statements in this block of code.
+		info("The agent was stopped.")
+	}
+
+	on AgentSpawned {
+		// A new agent has been spawned in our context.
+	}
+
+	on AgentKilled {
+		// A new agent has been killed in our context.
+	}
+
+	on ContextJoined {
+		// Event trigger when an agent of the level joins a shared context.
+		// Sent to a agent of the same level.
+	}
+
+	on ContextLeft {
+		// Event trigger when an agent of the level jleaves a shared context.
+		// Sent to a agent of the same level.
+	}
+
+	on MemberJoined {
+		// Event trigger when an agent joins one of our shared super-holons.
+		// Sent to all members of the considered super-holon.
+	}
+
+	on MemberLeft {
+		// Event trigger when an agent leaves one of our shared super-holons.
+		// Sent to all members of the considered super-holon.
+	}
+
+	on MemberLeft {
+		// Event trigger when an agent leaves one of our shared super-holons.
+		// Sent to all members of the considered super-holon.
+	}
+
+	on SpaceCreated {
+		// Event trigger when a space is created into one of the contexts where the agent is.
+	}
+
+	on SpaceDestroyed {
+		// Event trigger when a space is destroyed from one of the contexts where the agent is.
+	}
+
+	on ParticipantJoined {
+		// Event trigger when a participant has joined a space.
+	}
+
+	on ParticipantLeft {
+		// Event trigger when a participant has left a space.
+	}
+
+}

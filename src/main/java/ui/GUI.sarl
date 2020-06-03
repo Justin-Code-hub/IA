@@ -1,0 +1,128 @@
+/** 
+ * 
+ */
+package ui
+
+/** 
+ * @author Justin
+ * 
+ */
+import javafx.application.Application
+import javafx.stage.Stage
+import javafx.scene.Group
+import javafx.scene.Scene;
+import java.util.concurrent.Executors
+import javafx.application.Platform
+import java.util.concurrent.atomic.AtomicBoolean
+import javafx.scene.paint.Color
+import java.util.ArrayList
+
+import javafx.scene.shape.Circle
+import javafx.scene.shape.Rectangle
+import javafx.scene.text.Text
+import javafx.scene.text.Font
+import environment.Human
+import environment.Zombie
+import environment.Body
+
+
+class GUI extends Application {
+
+	var public static BODY_SIZE = 32;
+	
+	static var gui : GUI
+	var primaryStage : Stage
+	val launched = new AtomicBoolean(false)
+	var initialized = false
+	var group = new Group()
+	var step = 1
+	
+	static def getGUI : GUI {
+		if(gui == null){
+			var executorService = Executors.newSingleThreadExecutor
+			executorService.submit[Application::launch()]
+			
+			while (gui === null) {
+				Thread.yield
+			}
+		}
+		return gui
+	}
+
+	def launchGUI {
+		if (!launched.getAndSet(true)) {
+			Platform.runLater[initGUI()]
+		}
+	}
+
+	override start(primaryStage : Stage) {
+		gui = this
+		this.primaryStage = primaryStage
+	}
+	
+	private def initGUI{
+		var scene = new Scene(this.group, 1120, 960, Color.LIGHTGRAY)
+		this.primaryStage.title = "Human vs Zombie"
+		this.primaryStage.scene = scene
+		this.primaryStage.show
+		
+		informations(1, 1)
+		this.initialized = true
+		
+	}
+	
+	def setTitle(title : String){
+		this.primaryStage.title = title
+	}
+	
+	def informations(nbHumans : int, nbZombies : int) {
+		var rectangle = new Rectangle(160, 960, Color.DARKGRAY)
+		rectangle.setX(960)
+		rectangle.setY(0)
+		this.group.getChildren.add(rectangle)
+		
+		var textStep = new Text("Number of step : " + this.step)
+		textStep.setFont(new Font(15))
+		textStep.setFill(Color.BLACK)
+		textStep.setX(960 + 80 - textStep.getBoundsInLocal.getWidth / 2)
+		textStep.setY(20)
+		this.group.getChildren.add(textStep)
+
+		var textHumans = new Text("Number of humans : " + nbHumans)
+		textHumans.setFont(new Font(15))
+		textHumans.setFill(Color.BLACK)
+		textHumans.setX(960 + 80 - textHumans.getBoundsInLocal.getWidth / 2)
+		textHumans.setY(60)
+		this.group.getChildren.add(textHumans)
+
+		var textZombies = new Text("Number of zombies : " + nbZombies)
+		textZombies.setFont(new Font(15))
+		textZombies.setFill(Color.BLACK)
+		textZombies.setX(960 + 80 - textZombies.getBoundsInLocal.getWidth / 2)
+		textZombies.setY(100)
+		this.group.getChildren.add(textZombies)	
+		
+	}
+	
+	def setScene(bodies : ArrayList<Body>, nbHumans : int, nbZombies : int){
+		this.group.getChildren.clear
+
+		informations(nbHumans, nbZombies)
+		
+		for (body : bodies){
+			if (body instanceof Human){
+				var circle = new Circle(BODY_SIZE * (body.position.x + 0.5), BODY_SIZE * (body.position.y + 0.5), BODY_SIZE / 2, Color.RED)
+				this.group.getChildren.add(circle)
+			}
+			else if (body instanceof Zombie) {
+				var circle = new Circle(BODY_SIZE * (body.position.x + 0.5), BODY_SIZE * (body.position.y + 0.5),
+					BODY_SIZE / 2, Color.GREEN)
+				this.group.getChildren.add(circle)
+			}
+		}
+	}
+	
+	def getInitialized(){
+		return this.initialized
+	}
+}

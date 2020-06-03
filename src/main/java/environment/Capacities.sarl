@@ -1,0 +1,50 @@
+/** 
+ * 
+ */
+package environment
+
+import math.Point2i
+import java.util.UUID
+
+/** 
+ * @author Justin
+ * 
+ */
+capacity Bodies {
+	
+	def createZombie(x : int, y : int) : Zombie
+	def createZombie(position : Point2i) : Zombie
+	def createZombie(position : Point2i, id : UUID) :Zombie
+
+	def createHuman(x : int, y : int) : Human
+	def createHuman(position : Point2i) : Human
+	def createHuman(position : Point2i, id : UUID) : Human
+
+}
+
+skill BodiesSkill implements Bodies{
+	
+	def createZombie(x : int, y : int) : Zombie {
+		return new Zombie(x, y, UUID.randomUUID())
+	}
+	
+	def createZombie(position : Point2i) : Zombie {
+		return new Zombie(position, UUID.randomUUID())
+	}
+
+	def createZombie(position : Point2i, id : UUID) : Zombie {
+		return new Zombie(position, id)
+	}
+	
+	def createHuman(x : int, y : int) : Human {
+		return new Human(x, y, UUID.randomUUID())
+	}
+	
+	def createHuman(position : Point2i) : Human {
+		return new Human(position, UUID.randomUUID())
+	}
+
+	def createHuman(position : Point2i, id : UUID) : Human {
+		return new Human(position, id)
+	}
+}

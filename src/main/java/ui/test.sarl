@@ -1,0 +1,43 @@
+package ui
+import io.sarl.core.Initialize
+import javafx.application.Platform
+import io.sarl.core.Lifecycle
+import io.sarl.core.DefaultContextInteractions
+import io.sarl.core.Logging
+
+import environment.Environment
+import environment.Body
+import events.UpdateGUI
+
+agent test{
+	uses DefaultContextInteractions, Lifecycle, Logging
+	
+	var gui : GUI
+	var width = 30
+	var height = 30
+	var nbHumans = 3
+	var nbZombies = 1
+		
+	on Initialize {
+		gui = GUI.GUI
+
+		Platform.runLater [
+			gui.launchGUI
+			//controller.readyToSetup = true
+		]
+		
+		/*while(!gui.initialized){
+			info(gui.initialized)
+		}*/
+		spawn(Environment, this.gui, this.width, this.height, this.nbHumans, this.nbZombies)
+		
+	}
+	
+	on UpdateGUI{
+		//gui.print("Ceci est un titre")
+		Platform.runLater [
+			gui.setScene(occurrence.bodies, occurrence.nbHumans, occurrence.nbZombies)
+		]
+	}
+
+}
