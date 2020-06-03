@@ -5,6 +5,7 @@
 ## Already done but not in this repository:
 - Human fleeing behaviour
 - Zombie seeking behaviour
+- Zombies can kill humans
 
 ## To improve :
 - GUI
@@ -12,6 +13,7 @@
 
 ## Todo :
 - A wandering behaviour less random / more natural for Zombies
+- Detect and resolve conflict
 - Create wall
 - Create glass
 - Create weapon (request from M.Galland)
