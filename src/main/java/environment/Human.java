@@ -2,6 +2,7 @@ package environment;
 
 import java.util.UUID;
 
+import dataStructure.Direction;
 import math.Point2i;
 
 public class Human extends Body{
@@ -10,23 +11,16 @@ public class Human extends Body{
 
 	Human(int x, int y, UUID Id) {
 		super(x, y, Id);
-		// TODO Auto-generated constructor stub
+		super.setObstructView(true);
 	}
 	
 	Human(Point2i position, UUID Id){
 		super(position, Id);
+		setObstructView(true);
 	}
-
-	@Override
-	public boolean isOccluder() {
-		// TODO Auto-generated method stub
-		return false;
+	
+	Human(Point2i position, UUID Id, Point2i direction){
+		super(position, Id, direction);
+		setObstructView(true);
 	}
-
-	@Override
-	public boolean isPickable() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 }

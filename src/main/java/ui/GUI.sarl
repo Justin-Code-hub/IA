@@ -19,12 +19,18 @@ import java.util.ArrayList
 
 import javafx.scene.shape.Circle
 import javafx.scene.shape.Rectangle
+import javafx.scene.shape.Line
 import javafx.scene.text.Text
 import javafx.scene.text.Font
 import environment.Human
 import environment.Zombie
 import environment.Body
-
+import dataStructure.Direction
+import java.util.List
+import math.Point2i
+import environment.SerializableObject
+import java.util.HashMap
+import environment.Weapon
 
 class GUI extends Application {
 
@@ -35,7 +41,6 @@ class GUI extends Application {
 	val launched = new AtomicBoolean(false)
 	var initialized = false
 	var group = new Group()
-	var step = 1
 	
 	static def getGUI : GUI {
 		if(gui == null){
@@ -66,7 +71,7 @@ class GUI extends Application {
 		this.primaryStage.scene = scene
 		this.primaryStage.show
 		
-		informations(1, 1)
+		informations(0, 0, 0)
 		this.initialized = true
 		
 	}
@@ -75,13 +80,13 @@ class GUI extends Application {
 		this.primaryStage.title = title
 	}
 	
-	def informations(nbHumans : int, nbZombies : int) {
+	def informations(nbHumans : int, nbZombies : int, nbSteps : int) {
 		var rectangle = new Rectangle(160, 960, Color.DARKGRAY)
 		rectangle.setX(960)
 		rectangle.setY(0)
 		this.group.getChildren.add(rectangle)
 		
-		var textStep = new Text("Number of step : " + this.step)
+		var textStep = new Text("Number of step : " + nbSteps)
 		textStep.setFont(new Font(15))
 		textStep.setFill(Color.BLACK)
 		textStep.setX(960 + 80 - textStep.getBoundsInLocal.getWidth / 2)
@@ -104,21 +109,49 @@ class GUI extends Application {
 		
 	}
 	
-	def setScene(bodies : ArrayList<Body>, nbHumans : int, nbZombies : int){
+	def setScene(objects : HashMap<Point2i, SerializableObject>, nbHumans : int, nbZombies : int, points : List<Point2i>, nbSteps : int){
+		var bodies : ArrayList<Body> = newArrayList
 		this.group.getChildren.clear
 
-		informations(nbHumans, nbZombies)
+		informations(nbHumans, nbZombies, nbSteps)
 		
-		for (body : bodies){
-			if (body instanceof Human){
-				var circle = new Circle(BODY_SIZE * (body.position.x + 0.5), BODY_SIZE * (body.position.y + 0.5), BODY_SIZE / 2, Color.RED)
-				this.group.getChildren.add(circle)
+		for (objectPosition : objects.keySet){
+			if(objects.get(objectPosition) instanceof Body) {
+				bodies.add(objects.get(objectPosition) as Body)
 			}
-			else if (body instanceof Zombie) {
-				var circle = new Circle(BODY_SIZE * (body.position.x + 0.5), BODY_SIZE * (body.position.y + 0.5),
+			var circle : Circle
+			
+			if (objects.get(objectPosition) instanceof Human){
+				circle = new Circle(BODY_SIZE * (objectPosition.x + 0.5), BODY_SIZE * (objectPosition.y + 0.5),
+					BODY_SIZE / 2, Color.RED)
+			}
+			else if (objects.get(objectPosition) instanceof Zombie) {
+				circle = new Circle(BODY_SIZE * (objectPosition.x + 0.5), BODY_SIZE * (objectPosition.y + 0.5),
 					BODY_SIZE / 2, Color.GREEN)
-				this.group.getChildren.add(circle)
+				System.out.println("POINTS : " + points)
+				try {
+					var l1 = new Line(circle.getCenterX, circle.getCenterY, points.get(0).getX * 32, points.get(0).getY * 32)
+					var l2 = new Line(circle.getCenterX, circle.getCenterY, points.get(1).getX * 32, points.get(1).getY * 32)
+					this.group.getChildren.add(l1)
+					this.group.getChildren.add(l2)
+				} catch (e : Exception) {
+					
+				}
 			}
+			else if (objects.get(objectPosition) instanceof Weapon) {
+				circle = new Circle(BODY_SIZE * (objectPosition.x + 0.5), BODY_SIZE * (objectPosition.y + 0.5),
+					BODY_SIZE / 2, Color.YELLOW)
+			}
+			System.out.println("GUI : " + objectPosition + " / Obj : " + objects.get(objectPosition))
+			this.group.getChildren.add(circle)
+		}
+	
+		for (b : bodies) {
+			var line : Line
+			line = new Line(BODY_SIZE * (b.position.x + 0.5), BODY_SIZE * (b.position.y + 0.5),
+				BODY_SIZE * (b.position.x + 0.5) + b.direction.x * BODY_SIZE,
+				BODY_SIZE * (b.position.y + 0.5) + b.direction.y * BODY_SIZE)
+			this.group.getChildren.add(line)
 		}
 	}
 	

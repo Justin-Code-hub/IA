@@ -8,42 +8,101 @@ import java.util.ArrayList
 import math.Point2i
 
 import environment.Body
+import environment.SerializableObject
+import dataStructure.Direction
+import java.util.List
+import java.util.HashMap
+
 /** 
  * @author Justin
  * 
  */
 event Perception{
-	val bodies : ArrayList<Body>
+	val objects : ArrayList<SerializableObject>
 	val id : UUID
 	val position : Point2i
 	
-	new (id : UUID, bodies : ArrayList<Body>, position : Point2i){
+	new (id : UUID, objects : ArrayList<SerializableObject>, position : Point2i){
 		this.id = id
-		this.bodies = bodies
+		this.objects = objects
 		this.position = position
 	}
 }
 
-event Action{
-	val position : Point2i
+event Move{
+	val wantedPosition : Point2i
+	val currentPosition : Point2i
 	val id : UUID
 	val name : String
+	val direction : Point2i
+	var isKillEmited : boolean
 	
-	new(position : Point2i, id : UUID, name : String){
-		this.position = position
+	new(wantedPosition : Point2i, currentPosition : Point2i, id : UUID, name : String, direction : Point2i, isKillEmited : boolean){
+		this.wantedPosition = wantedPosition
+		this.currentPosition = currentPosition
 		this.id = id
 		this.name = name
+		this.direction = direction
+		this.isKillEmited = isKillEmited
 	}
 }
 
-event UpdateGUI{
-	val bodies : ArrayList<Body>
-	val nbHumans : int
-	val nbZombies : int
+event Kill{
+	val position : Point2i
 	
-	new (bodies : ArrayList<Body>, nbHumans : int, nbZombies : int){
-		this.bodies = bodies
-		this.nbHumans = nbHumans
-		this.nbZombies = nbZombies
+	new(position : Point2i){
+		this.position = position
 	}
 }
+
+event KillId {
+	val id : UUID
+
+	new(id : UUID) {
+		this.id = id
+	}
+}
+
+event PickWeapon {
+	val id : UUID
+
+	new(id : UUID) {
+		this.id = id
+	}
+}
+
+
+event UpdateGUI{
+	val objects : HashMap<Point2i, SerializableObject>
+	val nbHumans : int
+	val nbZombies : int
+	val points : List<Point2i>
+	val nbSteps : int
+	
+	new (objects : HashMap<Point2i,SerializableObject>, nbHumans : int, nbZombies : int, points : List<Point2i>,
+		nbSteps : int) {
+		this.objects = objects
+		this.nbHumans = nbHumans
+		this.nbZombies = nbZombies
+		this.points = points
+		this.nbSteps = nbSteps
+	}
+}
+
+event End{
+	val nbHumans : int
+	val nbZombies : int
+	val nbWeapons : int
+	val nbSteps : int
+	
+	new (nbHumans : int, nbZombies : int, nbWeapons : int, nbSteps : int) {
+		this.nbHumans = nbHumans
+		this.nbZombies = nbZombies
+		this.nbWeapons = nbWeapons
+		this.nbSteps = nbSteps
+	}
+}
+
+event Launch
+event WeaponPicked
+event KillEnvironment

@@ -26,4 +26,8 @@ public class PriorityQueuePair implements Comparable<PriorityQueuePair>{
 	public Point2i getValue() {
 		return this.position;
 	}
+	
+	public String toString() {
+		return "Distance : " + this.distance + " / Position " + this.position;
+	}
 }

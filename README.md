@@ -2,22 +2,35 @@
 
 # Stable version
 
-## Already done but not in this repository:
-- Human fleeing behaviour
-- Zombie seeking behaviour
-- Zombies can kill humans
+## Implemented :
+- Human agent
+	- Random behaviour
+	- Fleeig (from zombie) behaviour
+	- Seeking (weapon) behaviour
+	- Seeking (zombie) behaviour
+- Zombie agent
+	- Random behaviour
+	- Seeking (human) behaviour
+- Environment 
+- Basic graphical interface
+
+## Implemented but not used :
+- Wall
 
 ## To improve :
 - GUI
 - How to know if the GUI is closed ? At the moment, the test agent never stop
+- FOV seems a bit off sometimes
+- Conflict resolution
 
 ## Todo :
-- A wandering behaviour less random / more natural for Zombies
-- Detect and resolve conflict
-- Create wall
+- A wandering behaviour less random / more natural for Zombies and Humans
 - Create glass
-- Create weapon (request from M.Galland)
-- Create interaction between Zombie/Human and wall/glass/weapon
+
+## Bug  :
+- When two zombies want to are at the same distance from an human and want to go to the human position they will collide and there will never be a solution at the moment
+- Infinite loop when trying to resolve conflict (very rare)
+- When two entity try to kill another entity there will be a bug because an entity can only be killed once
 
 ## How to launch the simulation :
 Click on test.sarl -> run as -> sarl agent

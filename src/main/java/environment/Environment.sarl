@@ -16,16 +16,20 @@ import io.sarl.core.ParticipantJoined
 import io.sarl.core.ParticipantLeft
 import io.sarl.core.SpaceCreated
 import io.sarl.core.SpaceDestroyed
-import math.Point2i
+
 import io.sarl.core.Lifecycle
 import io.sarl.core.DefaultContextInteractions
 import java.util.ArrayList
-import java.util.UUID
-import java.util.Timer
-import java.util.Calendar
+import java.util.List
+
 import ui.GUI
 
 import events.*
+import java.util.HashMap
+import math.Point2i
+import math.Point2f
+import dataStructure.Direction
+
 /** 
  * @author Justin
  * 
@@ -37,134 +41,437 @@ agent Environment {
 	var height : int
 	var nbHumans : int
 	var nbZombies : int
+	var nbWalls : int
+	var nbWeapons : int
+
+	var points : List<Point2i>
+
+	var nbSteps : int = 0
+
 	//var bodyList : Body[] = newArrayOfSize()
-	var bodyList : ArrayList<Body> = newArrayList
-	var actionList : ArrayList<Action> = newArrayList
-	var ignoreAction = false
+	var objects : HashMap<Point2i, SerializableObject> = newHashMap
+	var bodies : HashMap<Point2i, Body> = newHashMap
+	//var bodyList : ArrayList<Body> = newArrayList
+	var moveList : ArrayList<Move> = newArrayList
+	var killList : ArrayList<Kill> = newArrayList
+	
+	var nbWeaponPicked : int
 	var gui : GUI
+
+	var listRandomPosition : ArrayList<Point2i> = newArrayList
+	var nbKill : int
 	
 	on Initialize {
-		info("The environment is started.")
-		
+		System.out.println("The environment is started.")
 		this.gui = occurrence.parameters.get(0)  as GUI
 		this.width = occurrence.parameters.get(1) as Integer
 		this.height = occurrence.parameters.get(2) as Integer
 		this.nbHumans = occurrence.parameters.get(3) as Integer
 		this.nbZombies = occurrence.parameters.get(4) as Integer
+		this.nbWalls = occurrence.parameters.get(5) as Integer
+		this.nbWeapons = occurrence.parameters.get(6) as Integer
+
+		this.nbKill = 0
 		
-		setSkill(new BodiesSkill)
+	 	setSkill(new BodiesSkill)
 		
 		for (i : 0 ..< this.nbHumans as Integer) {
 			var body = createHuman(randomPosition)
-			this.bodyList.add(body)
-			
+			this.bodies.put(body.position, body)
+			this.objects.put(body.position, body)
 			spawn(HumanAgent, body.id)
 		}
 
 		for (i : 0 ..< this.nbZombies as Integer) {
 			var body = createZombie(randomPosition)
-			this.bodyList.add(body)
+			this.bodies.put(body.position, body)
+			this.objects.put(body.position, body)
 			spawn(ZombieAgent, body.id)
 		}
+		for (i : 0 ..< this.nbWeapons as Integer) {
+			var object = createWeapon(randomPosition)
+			this.objects.put(object.position, object)
+		}
+
+		//var weapon = createWeapon(new Point2i(6, 12))
+		//this.objects.put(weapon.position, weapon)
 		
-		run
+		//var wall = createWall(new Point2i(6, 8))
+		//this.objects.put(wall.position, wall)
+		//run
+		
 		
 	}
-	
+
+	on Launch {
+		while(this.nbHumans != 0 && this.nbZombies != 0) {
+			emit(new UpdateGUI(this.objects, this.nbHumans, this.nbZombies, this.points, this.nbSteps))
+			agentPerception
+			while(this.moveList.size != this.nbZombies + this.nbHumans || this.nbKill != 0) {
+				// Do nothing
+				System.out.println("abc : " + this.moveList.size + " ; " + this.nbKill)
+				Thread.sleep(1)
+			}
+			System.out.println("def : " + this.moveList.size + " ; " + this.nbKill)
+			moveBodies
+			while(this.moveList.size != 0 && this.nbWeaponPicked != 0){
+				// Do nothing
+				//System.out.println("456")
+				Thread.sleep(1)
+			}
+		}
+
+		emit(new UpdateGUI(this.objects, this.nbHumans, this.nbZombies, this.points, this.nbSteps))
+		if(this.nbZombies == this.nbHumans) {
+			System.out.println("Draw")
+		}
+		else if(this.nbZombies > this.nbHumans) {
+			System.out.println("Zombies win")
+		}
+		else{
+			System.out.println("Humans win")	
+		}
+		System.out.println("END")
+		emit(new End(this.nbHumans, this.nbZombies, this.nbWeapons, this.nbSteps))
+	}
+
 	def randomPosition{
-		var posX = 0 + (Math.random() * ((this.width - 0) + 1)) as Integer
-		var posY = 0 + (Math.random() * ((this.height - 0) + 1)) as Integer
-		info(posX + "/" + posY)
+		var posX : int
+		var posY : int
+		do{
+			posX = 0 + (Math.random() * ((this.width - 1) + 1)) as Integer
+			posY = 0 + (Math.random() * ((this.height - 1) + 1)) as Integer
+		} while(listRandomPosition.contains(new Point2i(posX, posY)))
+
+		listRandomPosition.add(new Point2i(posX, posY))
+		System.out.println(posX + "/" + posY)
 		return new Point2i(posX, posY)
 	}
 	
-	def run{
-		info("RUNNNNN")
-		for (b : this.bodyList) {
-			emit(new Perception(b.id, this.bodyList, b.position))
+	def agentPerception{
+		System.out.println("STEPS : " + this.nbSteps)
+		// Let's do some maths
+		var agentsPerception : ArrayList<Perception> = newArrayList // List of perception event for each agent
+
+		for (bodyPosition : this.bodies.keySet) {
+			var perceptionList : ArrayList<SerializableObject> = newArrayList // List of all objects seen by an agent
+
+			System.out.println("a bod : " + objects.get(bodyPosition))
+			System.out.println("a dir : " + bodyPosition)
+			perceptionList.clear()
+			for (objectPosition : this.objects.keySet) {
+				System.out.println("an obj : " + objectPosition)
+				if (bodyPosition == objectPosition){
+					continue
+				}
+				
+				// A triangle is constructed from the body until the border of the map with an angle of 90 degree
+				// If a point is inside this triangle(fov) it means that the 3 new triangles have a total area equal to the area of the previous triangle
+				var point1 : Point2i
+				var point2 : Point2i
+				var point3 : Point2i
+				var slope : float
+				var direction : Point2f
+
+				if(objectPosition.x - bodyPosition.x != 0){
+					slope = (objectPosition.y - bodyPosition.y) * 1.0f / (objectPosition.x - bodyPosition.x)
+				}
+				else {
+					slope = 0
+				}
+
+				// Math.round is used to avoid strange value such as tan(pi/2) = 0.999
+				if (this.bodies.get(bodyPosition).direction == Direction.UP) {
+					System.out.println("UP")
+					point1 = new Point2i(Math.round(bodyPosition.x - (Math.tan(Math.PI / 3) * bodyPosition.y)) as Integer, 0)
+					point2 = new Point2i(Math.round(bodyPosition.x + (Math.tan(Math.PI / 3) * bodyPosition.y)) as Integer, 0)
+					point3 = new Point2i(bodyPosition.x, 0)
+					if (slope != 0) {
+						direction = new Point2f(-1 / slope, -1)
+					}
+					else{
+						direction = new Point2f(0, -1)
+					}
+				}
+				else if (this.bodies.get(bodyPosition).direction == Direction.DOWN) {
+					System.out.println("DOWN")
+					point1 = new Point2i(Math.round(bodyPosition.x - (Math.tan(Math.PI / 3) * (29 - bodyPosition.y))) as Integer, 29)
+					point2 = new Point2i(Math.round(bodyPosition.x + (Math.tan(Math.PI / 3) * (29 - bodyPosition.y))) as Integer, 29)
+					point3 = new Point2i(bodyPosition.x, 29)
+					if (slope != 0) {
+						direction = new Point2f(1 / slope, 1)	
+					}
+					else{
+						direction = new Point2f(0, 1)
+					}
+				}
+				else if (this.bodies.get(bodyPosition).direction == Direction.LEFT) {
+					System.out.println("LEFT")
+					point1 = new Point2i(0, Math.round(bodyPosition.y - (Math.tan(Math.PI / 3) * bodyPosition.x)) as Integer)
+					point2 = new Point2i(0, Math.round(bodyPosition.y + (Math.tan(Math.PI / 3) * bodyPosition.x)) as Integer)
+					point3 = new Point2i(0, bodyPosition.y)
+					direction = new Point2f(-1, -slope)
+				}
+				else if (this.bodies.get(bodyPosition).direction == Direction.RIGHT) {
+					System.out.println("RIGHT")
+					point1 = new Point2i(29, Math.round(bodyPosition.y - (Math.tan(Math.PI / 3) * (29 - bodyPosition.x))) as Integer)
+					point2 = new Point2i(29, Math.round(bodyPosition.y + (Math.tan(Math.PI / 3) * (29 - bodyPosition.x))) as Integer)
+					point3 = new Point2i(29, bodyPosition.y)
+					direction = new Point2f(1, slope)
+				}
+				else{
+					System.out.println("BUG")
+				}
+				
+				System.out.println("Direction : " + direction)
+				System.out.println(point1)
+				System.out.println(point2)
+				System.out.println(point3)
+
+				//Gui points
+				if(objects.get(bodyPosition) instanceof Zombie) {
+					this.points = #[point1, point2]
+				}
+				
+				var v1 = new Point2i(objectPosition - point1)
+				var v2 = new Point2i(objectPosition - point2)
+				var v3 = new Point2i(objectPosition - bodyPosition)
+
+				System.out.println("Area 1 : " + (bodyPosition.distance(point3)) * (point3.distance(point2)))
+				System.out.println("Area 2 : " + (v1.multiply(v2) * 0.5 + v1.multiply(v3) * 0.5 + v2.multiply(v3) * 0.5))
+				//Thread.sleep(5000)
+
+				if(bodyPosition.distance(point3) * point3.distance(point2) != 0 && (bodyPosition.distance(point3) * point3.distance(point2)) == (v1.multiply(v2) * 0.5 + v1.multiply(v3) * 0.5 + v2.multiply(v3) * 0.5)) {
+				
+					var positionToReach = new Point2f(bodyPosition)
+					positionToReach.add(direction)
+					var isObjectVisible = true
+
+					while (!positionToReach.equals(objectPosition)) {
+						if (objects.containsKey(positionToReach.toInt) && objects.get(positionToReach.toInt).obstructView){
+							isObjectVisible = false
+							break;
+						}
+						positionToReach.add(direction)
+					}	
+
+					if (isObjectVisible == true) {
+						perceptionList.add(objects.get(objectPosition))
+					}
+				}
+			}
+			
+			System.out.println("Perc :")
+			for (l : perceptionList) {
+				System.out.println(l.position )
+			}
+			agentsPerception.add(new Perception(this.bodies.get(bodyPosition).id, perceptionList, bodyPosition))
 		}
-		
+
+		System.out.println("Size perception : " + agentsPerception.size)
+		for (perception : agentsPerception) {
+			System.out.println("Perception for agent : " + perception.objects)
+			emit(perception)
+		}
+
 	}
 	
-	on Action {
-		info("Action received")
-		this.actionList.add(occurrence)	
-			
-		if (this.actionList.size == this.nbHumans + this.nbZombies) {
-			Thread.sleep(1000)
-			moveBodies
-			emit(new UpdateGUI(this.bodyList, this.nbHumans, this.nbZombies))
-			info(this.bodyList.size)
-			this.actionList.clear
-			run
+	on Move {
+		addMove(occurrence)
+		System.out.println("Kill emited : " + occurrence.isKillEmited)
+		if(occurrence.isKillEmited) {
+			//this.nbKill ++
+			incrementKill
+			System.out.println("Kill incremented : " + this.nbKill)
 		}
+		//this.moveList.add(occurrence)
+		System.out.println("Move received : " + this.moveList.size + " ///\n" + this.moveList)
+		System.out.println("---")		
+	}
+
+	def synchronized addMove(move : Move){
+		this.moveList.add(move)
 	}
 	
 	def moveBodies{
-		this.bodyList.clear
-		for(action : this.actionList){
-			if (action.name.equals("Human")) {
-				this.bodyList.add(createHuman(action.position, action.id))
+		System.out.println("Move bodies nb kill : " + this.nbKill)
+		var movesToDelete : ArrayList<Move> = newArrayList
+		System.out.println("SLEEP " + this.moveList.size + " / " + this.nbHumans + " / " + this.nbZombies)
+		System.out.println("Kill list : " + this.killList)
+		// ->Thread.sleep(500)
+		
+		System.out.println("KILL")
+		for (kill : this.killList) {
+			System.out.println("K Bodies : " + this.bodies)
+			System.out.println("Kill position : " + kill.position)
+
+			if(this.bodies.get(kill.position) instanceof Human) {
+				this.nbHumans -= 1
 			}
-			else if (action.name.equals("Zombie")) {
-				this.bodyList.add(createZombie(action.position, action.id))
-			}		
+			else if(this.bodies.get(kill.position) instanceof Zombie) {
+				this.nbZombies -= 1
+			}
+			System.out.println("EMIT ")
+			emit(new KillId(this.bodies.get(kill.position).id))
+			System.out.println("ADD TO REMOVE")
+			for(move : this.moveList) {
+				if (move.id == this.bodies.get(kill.position).id) {
+					movesToDelete.add(move)
+				}
+			}
+
+			this.objects.remove(kill.position)
+			this.bodies.remove(kill.position)
 		}
+
+		this.killList.clear
+
+		System.out.println("REMOVE")
+		for (move : movesToDelete){
+			this.moveList.remove(move)
+		}
+
+		System.out.println("RESOLVE")
+		resolveConflict
+
+
+		System.out.println("Hash")
+		var objectsTmp : HashMap<Point2i, SerializableObject> = newHashMap
+		var bodiesTmp : HashMap<Point2i, Body> = newHashMap
+
+		for(objectPosition : this.objects.keySet) {
+			if(this.objects.get(objectPosition) instanceof Body == false) {
+				objectsTmp.put(objectPosition, this.objects.get(objectPosition))
+			}
+		}
+
+		System.out.println("HERRRE")
+
+		for(move : this.moveList){
+			if (move.name.equals("Human")) {
+				objectsTmp.put(move.wantedPosition, createHuman(move.wantedPosition, move.id, move.direction))
+				bodiesTmp.put(move.wantedPosition, createHuman(move.wantedPosition, move.id, move.direction))
+				if (objects.get(move.wantedPosition) instanceof Weapon) {
+					emit(new PickWeapon(move.id))
+					this.nbWeaponPicked ++
+					this.nbWeapons --
+				}
+				//this.bodyList.add(createHuman(move.wantedPosition, move.id, move.direction))
+			}
+			else if (move.name.equals("Zombie")) {
+				objectsTmp.put(move.wantedPosition, createZombie(move.wantedPosition, move.id, move.direction))
+				bodiesTmp.put(move.wantedPosition, createZombie(move.wantedPosition, move.id, move.direction))
+				//this.bodyList.add(createZombie(move.wantedPosition, move.id, move.direction))
+			}	
+		}
+
+		this.objects = objectsTmp
+		this.bodies = bodiesTmp
+		System.out.println("Objects : " + this.objects)
+		System.out.println("Bodies : " + this.bodies)
+		this.nbSteps += 1
+
+		this.moveList.clear
+		movesToDelete.clear
+		System.out.println("Move received size : " + this.moveList.size + " / " + this.nbSteps)
+	}
+
+	def resolveConflict {
+		System.out.println("RESOLVE CONFLICT")
+
+		var conflict : boolean
+		var movesToDelete : ArrayList<Move> = newArrayList
+		var modifiedMoves : ArrayList<Move> = newArrayList
+
+		System.out.println("RESOLVE CONFLICT")
+
+		do{
+			conflict = false
+			for(m1 : this.moveList) {
+				System.out.println("M1")
+				for (m2 : this.moveList) {
+					System.out.println("M2")
+					if (m1.wantedPosition == m2.wantedPosition && m1.id != m2.id) {
+						conflict = true
+						System.out.println(modifiedMoves)
+						if (m1.name.equals("Human") && m2.name.equals("Human")){
+							if(movesToDelete.contains(m1) == false){
+								movesToDelete.add(m1)
+								modifiedMoves.add(new Move(m1.currentPosition, m1.currentPosition, m1.id, m1.name, m1.direction, false))
+							}
+							if(movesToDelete.contains(m2) == false){
+								movesToDelete.add(m2)
+								modifiedMoves.add(new Move(m2.currentPosition, m2.currentPosition, m2.id, m2.name, m2.direction, false))
+							}
+						}
+						else if(m1.name.equals("Zombie") && m2.name.equals("Zombie")){
+							if(movesToDelete.contains(m1) == false){
+								movesToDelete.add(m1)
+								modifiedMoves.add(new Move(m1.currentPosition, m1.currentPosition, m1.id, m1.name, m1.direction, false))
+							}
+							if(movesToDelete.contains(m2) == false){
+								movesToDelete.add(m2)
+								modifiedMoves.add(new Move(m2.currentPosition, m2.currentPosition, m2.id, m2.name, m2.direction, false))
+							}
+						}
+						else if(m1.name.equals("Zombie") && m2.name.equals("Human")){
+							if(movesToDelete.contains(m1) == false){
+								movesToDelete.add(m1)
+								modifiedMoves.add(new Move(m1.currentPosition, m1.currentPosition, m1.id, m1.name, m1.direction, false))
+							}
+						}
+					}
+					if(m1.wantedPosition == m2.currentPosition && m2.wantedPosition == m1.currentPosition) {
+						if(movesToDelete.contains(m1) == false){
+							movesToDelete.add(m1)
+							modifiedMoves.add(new Move(m1.currentPosition, m1.currentPosition, m1.id, m1.name, m1.direction, false))
+						}
+						if(movesToDelete.contains(m2) == false){
+							movesToDelete.add(m2)
+							modifiedMoves.add(new Move(m2.currentPosition, m2.currentPosition, m2.id, m2.name, m2.direction, false))
+						}
+					}
+				}
+			}
+
+			for(move : movesToDelete) {
+				if (this.moveList.contains(move)) {
+					this.moveList.remove(move)
+				}
+			}
+
+			this.moveList.addAll(0, modifiedMoves)
+			System.out.println("TRAPPED HERE ?")
+		}while (conflict == true)
+	}
+
+	on Kill {
+		//this.nbKill --
+		addKill(occurrence)
+		decrementKill
+		System.out.println("Kill reduced : " + this.nbKill)
+	}
+
+	def synchronized addKill(kill : Kill) {
+		this.killList.add(kill)
+	}
+	def synchronized incrementKill {
+		this.nbKill ++
+	}
+
+	def synchronized decrementKill {
+		this.nbKill --
+	}	
+
+	on WeaponPicked {
+		this.nbWeaponPicked --
 	}
 	
-	on Destroy {
-		// Event trigger when the agent is destroyed from the system.
-		// You should put all the resource releasing statements in this block of code.
-		info("The agent was stopped.")
-	}
-
-	on AgentSpawned {
-		// A new agent has been spawned in our context.
-	}
-
-	on AgentKilled {
-		// A new agent has been killed in our context.
-	}
-
-	on ContextJoined {
-		// Event trigger when an agent of the level joins a shared context.
-		// Sent to a agent of the same level.
-	}
-
-	on ContextLeft {
-		// Event trigger when an agent of the level jleaves a shared context.
-		// Sent to a agent of the same level.
-	}
-
-	on MemberJoined {
-		// Event trigger when an agent joins one of our shared super-holons.
-		// Sent to all members of the considered super-holon.
-	}
-
-	on MemberLeft {
-		// Event trigger when an agent leaves one of our shared super-holons.
-		// Sent to all members of the considered super-holon.
-	}
-
-	on MemberLeft {
-		// Event trigger when an agent leaves one of our shared super-holons.
-		// Sent to all members of the considered super-holon.
-	}
-
-	on SpaceCreated {
-		// Event trigger when a space is created into one of the contexts where the agent is.
-	}
-
-	on SpaceDestroyed {
-		// Event trigger when a space is destroyed from one of the contexts where the agent is.
-	}
-
-	on ParticipantJoined {
-		// Event trigger when a participant has joined a space.
-	}
-
-	on ParticipantLeft {
-		// Event trigger when a participant has left a space.
+	on KillEnvironment {
+		for(body : this.bodies.keySet){
+			emit(new KillId(this.bodies.get(body).id))
+		}
+		killMe
 	}
 
 }

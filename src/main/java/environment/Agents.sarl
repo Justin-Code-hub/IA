@@ -14,149 +14,373 @@ import java.util.Random
 import io.sarl.core.DefaultContextInteractions
 
 import events.*
+import io.sarl.core.Lifecycle
+import java.util.ArrayList
+import math.Point2f
+import java.util.HashMap
 
 /** 
  * @author Justin
  * 
  */
 agent ZombieAgent {
-	uses Logging, DefaultContextInteractions
+	uses Logging, DefaultContextInteractions, Lifecycle
 	
 	var id : UUID
 	var currentPosition : Point2i
 	var wantedPosition : Point2i
 	var name = "Zombie"
+	var direction : Point2i
+	var isKillEmited : boolean
 	
 	on Initialize {
 		// Event trigger before the agent begin to live or to be used.
 		// You should put all the initialization statements in this block of code.
-		info("A zombie appears.")
+		System.out.println("A zombie appears.")
 		this.id = occurrence.parameters.get(0) as UUID
-	}
-
-	on Destroy {
-		// Event trigger when the agent is destroyed from the system.
-		// You should put all the resource releasing statements in this block of code.
-		info("The agent was stopped.")
 	}
 	
 	on Perception {
 		if (occurrence.id == this.id) {
-			info("A zombie is seeing")
-			
+			this.isKillEmited = false
+			System.out.println("A zombie is seeing")
+			System.out.println("Occurrence : " + occurrence.objects)
 			var queueHumans : PriorityQueue<PriorityQueuePair> = new PriorityQueue
 			this.currentPosition = occurrence.position
+			this.wantedPosition = new Point2i(this.currentPosition)
+			
 			// There must be an easier way to sort humans by distance
-			for (body : occurrence.bodies) {
-				if (body instanceof Human) {
-					var position = new Point2i(body.getPosition)
-					// Create a priority queue of humans based on distance
-					queueHumans.add(new PriorityQueuePair(position.distance(this.currentPosition) as int, position)
-					)
-				}
+			if (occurrence.objects.isEmpty()) {
+				randomMove(occurrence.objects)
 			}
-		//info(queueHumans.poll().getValue())
-		randomMove
-		emit(new Action(this.wantedPosition, this.id, this.name))
+			else {
+				for (object : occurrence.objects) {
+					if (object instanceof Human) {
+						var position = new Point2i(object.getPosition)
+						// Create a priority queue of humans based on distance
+					 	queueHumans.add(new PriorityQueuePair(position.distanceM(this.currentPosition) as int, position))
+					}
+				}
+				if (queueHumans.isEmpty) {
+					randomMove(occurrence.objects)
+				} else {
+					System.out.println("Queue : " + queueHumans)
+					seekingMove(queueHumans.poll.getValue())
+				}
+			}			
+			emit(new Move(this.wantedPosition, this.currentPosition, this.id, this.name, this.direction, this.isKillEmited))
+			System.out.println(
+				"ZOMBIE - CURRENT : " + this.currentPosition + " WANTED : " + this.wantedPosition + " DIRECTION : " +
+				this.direction)
+		}
+
+	}
+
+	on KillId {
+		if (this.id == occurrence.id) {
+			killMe
 		}
 	}
 	
-	def randomMove() {
-		this.wantedPosition = new Point2i(this.currentPosition)
-		var directions = newArrayList(Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT) 
-		
-		if (this.currentPosition.getX == 29 ){
-			directions.remove(3)
+	def randomMove(objects : ArrayList<SerializableObject>) {
+		System.out.println("ZOMBIE RANDOM")
+		var directions : ArrayList<Point2i> = newArrayList;
+				
+		if (this.currentPosition.getX != 29 ){
+			directions.add(Direction.RIGHT)
 		}
-		else if (this.currentPosition.getX == 0){
-			directions.remove(2)
+		if (this.currentPosition.getX != 0){
+			directions.add(Direction.LEFT)
 		}
-
-		if (this.currentPosition.getY == 29) {
-			directions.remove(directions.indexOf(Direction.DOWN))
-		} else if (this.currentPosition.getY == 0) {
-			directions.remove(directions.indexOf(Direction.UP))
+		if (this.currentPosition.getY != 29) {
+			directions.add(Direction.DOWN)
+		}
+		if (this.currentPosition.getY != 0) {
+			directions.add(Direction.UP)
 		}
 		
 		var random = new Random
 		var direction = directions.get(random.nextInt(directions.size))
 		
-		if (direction == Direction.UP){
-			this.wantedPosition.addY(-1)
+		this.wantedPosition.add(direction)
+		this.direction = direction
+	}
+	
+	def seekingMove(position : Point2i) {
+		var distance = position - this.currentPosition
+
+		System.out.println("ZOMBIE SEEKING : " + distance)
+		
+		if (distance.x == 0 && Math.abs(distance.y) == 1 || distance.y == 0 && Math.abs(distance.x) == 1) {
+			System.out.println("Killl humannnn : " + position)
+			this.isKillEmited = true
+			emit(new Kill(position))
+			
+			this.direction = new Point2i(distance.x, distance.y)
 		}
-		else if (direction == Direction.DOWN) {
-			this.wantedPosition.addY(1)
+		else {
+			if (Math.abs(distance.x) > Math.abs(distance.y)){
+				this.direction = new Point2i(Math.signum(distance.x) as Integer, 0)
+				this.wantedPosition.add(this.direction)
+			}
+			else {
+				this.direction = new Point2i(0, Math.signum(distance.y) as Integer)
+				this.wantedPosition.add(this.direction)	
+			}
 		}
-		else if (direction == Direction.RIGHT) {
-			this.wantedPosition.addX(1)
-		}
-		else if (direction == Direction.LEFT) {
-			this.wantedPosition.addX(-1)
-		}
+		System.out.println("Seeking zombie / Position : " + this.currentPosition + " / wanted : " + this.wantedPosition + " / Direction : " + this.direction)
 	}
 }
 
 agent HumanAgent {
-	uses Logging, DefaultContextInteractions
+	uses Logging, DefaultContextInteractions, Lifecycle
 
 	var id : UUID
 	var name = "Human"
 	var currentPosition : Point2i
 	var wantedPosition : Point2i
+	var direction : Point2i
+	var gotWeapon = false
+	var zombiesPosition : HashMap<UUID, Point2i> = new HashMap
+	var weaponsPosition : HashMap<UUID, Point2i> = new HashMap
+	var target : HashMap<UUID, Point2i>
+	var isKillEmited : boolean
+	//var queueWeapons : PriorityQueue<PriorityQueuePair> = new PriorityQueue
 	
 	on Initialize {
 		// Event trigger before the agent begin to live or to be used.
 		// You should put all the initialization statements in this block of code.
-		info("A human appears.")
+		System.out.println("A human appears.")
 		this.id = occurrence.parameters.get(0) as UUID
-	}
-
-	on Destroy {
-		// Event trigger when the agent is destroyed from the system.
-		// You should put all the resource releasing statements in this block of code.
-		info("The agent was stopped.")
 	}
 	
 	on Perception {
 		if (occurrence.id == this.id) {
-			info("A human is seeing")
+			this.isKillEmited = false
+			System.out.println("A human is seeing")
 			this.currentPosition = occurrence.position
-			randomMove
-			emit(new Action(this.wantedPosition, this.id, this.name))
-		}	
+			this.wantedPosition = new Point2i(this.currentPosition)
+			this.target = new HashMap
+
+			if (occurrence.objects.isEmpty == false) {
+				for (object : occurrence.objects) {
+					if (object instanceof Zombie) {
+						this.zombiesPosition.put(object.id, object.position)
+						this.target.put(object.id, object.position)
+					}
+					else if (object instanceof Weapon) {
+						this.weaponsPosition.put(object.id, object.position)
+					}
+				}
+			}
+			
+			if(this.gotWeapon){
+				if (this.zombiesPosition.isEmpty && this.target.isEmpty) {
+					System.out.println("Human : Random move 1")
+					randomMove(occurrence.objects)
+				}
+				else {
+					System.out.println("Human : Killing move 1")
+					killingMove
+				}
+			}
+			else if (this.zombiesPosition.isEmpty && this.weaponsPosition.isEmpty) {
+				System.out.println("Human : Random move 2")
+				randomMove(occurrence.objects)
+			}
+			else{
+				if (!this.zombiesPosition.isEmpty && this.weaponsPosition.isEmpty) {
+					System.out.println("Human : Fleeing move 1")
+					fleeingMove
+				}
+				else if (this.zombiesPosition.isEmpty && !this.weaponsPosition.isEmpty) {
+					System.out.println("Human : Seeking weapon move 1")
+					seekingWeaponMove
+				}
+				else{
+					//Find nearest weapon
+					var nearestWeapon = new Point2i(this.weaponsPosition.values().toArray().get(0) as Point2i)
+					for (weapon : this.weaponsPosition.keySet) {
+						if(this.currentPosition.distance(nearestWeapon) > this.currentPosition.distance(this.weaponsPosition.get(weapon))) {
+							nearestWeapon = this.weaponsPosition.get(weapon)
+						}
+					}
+					
+					// Find nearest zombie
+					var nearestZombie = new Point2i(this.zombiesPosition.values().toArray().get(0) as Point2i)
+					for (zombie : this.zombiesPosition.keySet) {
+						if (this.currentPosition.distance(nearestZombie) > this.currentPosition.distance(this.zombiesPosition.get(zombie))) {
+							nearestZombie = this.zombiesPosition.get(zombie)
+						}
+					}
+					
+					if (this.currentPosition.distance(nearestWeapon) < this.currentPosition.distance(nearestZombie)) {
+						System.out.println("Human : Seeking weapon move 2")
+						System.out.println("Got weapon : " + this.gotWeapon)
+						seekingWeaponMove
+					}
+					else {
+						System.out.println("Human : Fleeing move 2")
+						fleeingMove
+					}
+				}
+			}
+
+			if (this.direction.x == 0 && this.direction.y == 0) {
+				this.direction = Direction.DIRECTIONS.get(new Random().nextInt(Direction.DIRECTIONS.length))
+			}
+			emit(new Move(this.wantedPosition, this.currentPosition, this.id, this.name, this.direction, this.isKillEmited))
+			System.out.println("HUMAN - CURRENT : " + this.currentPosition + " WANTED : " + this.wantedPosition + " DIRECTION : " + this.direction)
+		}
+		
 	}
 	
-	def wanderMove(){
-		//TODO
+	on KillId {
+		if (this.id == occurrence.id){
+			killMe
+		}
+	}
+	
+	on PickWeapon {
+		System.out.print("Pick weapon have been called")
+		if (this.id == occurrence.id) {
+			this.gotWeapon = true
+			emit(new WeaponPicked)
+		}
 	}
 
-	def randomMove() {
-		this.wantedPosition = new Point2i(this.currentPosition)
-		var directions = newArrayList(Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT)
+	def randomMove(objects : ArrayList<SerializableObject>) {
+		var directions : ArrayList<Point2i> = newArrayList;
 
-		if (this.currentPosition.getX == 29) {
-			directions.remove(3)
-		} else if (this.currentPosition.getX == 0) {
-			directions.remove(2)
+		if (this.currentPosition.getX != 29) {
+			directions.add(Direction.RIGHT)
 		}
-
-		if (this.currentPosition.getY == 29) {
-			directions.remove(directions.indexOf(Direction.DOWN))
-		} else if (this.currentPosition.getY == 0) {
-			directions.remove(directions.indexOf(Direction.UP))
+		if (this.currentPosition.getX != 0) {
+			directions.add(Direction.LEFT)
+		}
+		if (this.currentPosition.getY != 29) {
+			directions.add(Direction.DOWN)
+		}
+		if (this.currentPosition.getY != 0) {
+			directions.add(Direction.UP)
 		}
 
 		var random = new Random
 		var direction = directions.get(random.nextInt(directions.size))
+	
+		this.wantedPosition.add(direction)
+		this.direction = direction
+	}
+	
+	def fleeingMove() {
+		var wallsRepulsion = new Point2f(0, 0)
+		var zombiesRepulsion = new Point2f(0, 0)
+		
+		for (zombie : this.zombiesPosition.keySet) {
+			var distance = Point2f.distance(this.currentPosition, this.zombiesPosition.get(zombie))
+			zombiesRepulsion.add(new Point2f(Math.signum(distance.x) * (29 - Math.abs(distance.x)) / 29, Math.signum(distance.y) * (29 - Math.abs(distance.y)) / 29))
+		}
+		zombiesRepulsion.add(this.currentPosition)
+		if (Math.abs(zombiesRepulsion.x) > Math.abs(zombiesRepulsion.y)) {
+			zombiesRepulsion.divided(Math.abs(zombiesRepulsion.x))
+		}
+		else {
+			zombiesRepulsion.divided(Math.abs(zombiesRepulsion.y))
+		}
+		
+		System.out.println("Zombies repulsion : " + zombiesRepulsion)
+		
+		//Repulsion left wall
+		wallsRepulsion.add((29 - this.currentPosition.x) / 29.0 as float, 0)
 
-		if (direction == Direction.UP) {
-			this.wantedPosition.addY(-1)
-		} else if (direction == Direction.DOWN) {
-			this.wantedPosition.addY(1)
-		} else if (direction == Direction.RIGHT) {
-			this.wantedPosition.addX(1)
-		} else if (direction == Direction.LEFT) {
-			this.wantedPosition.addX(-1)
+		// Repulsion right wall
+		wallsRepulsion.add((-this.currentPosition.x) / 29.0 as float, 0)
+
+		//Repulsion upper wall
+		wallsRepulsion.add(0, (29 - this.currentPosition.y) / 29.0 as float)
+
+		// Repulsion bottom wall
+		wallsRepulsion.add(0, (-this.currentPosition.y) / 29.0 as float)
+
+		System.out.println("Walls repulsion : " + wallsRepulsion)
+				
+		zombiesRepulsion.add(wallsRepulsion)
+		
+		if (Math.abs(zombiesRepulsion.x) > Math.abs(zombiesRepulsion.y)) {
+			this.direction = new Point2i(Math.signum(zombiesRepulsion.x) as Integer, 0)
+			this.wantedPosition.add(this.direction)
+		} else {
+			this.direction = new Point2i(0, Math.signum(zombiesRepulsion.y) as Integer)
+			this.wantedPosition.add(this.direction)
+		}
+	}
+	
+	def seekingWeaponMove() {
+		var nearestWeapon = new Point2i(this.weaponsPosition.values().toArray().get(0) as Point2i)
+		for (weapon : this.weaponsPosition.keySet) {
+			if (this.currentPosition.distance(nearestWeapon) >
+				this.currentPosition.distance(this.weaponsPosition.get(weapon))) {
+				nearestWeapon = this.weaponsPosition.get(weapon)
+			}
+		}
+		
+		var distance = nearestWeapon - this.currentPosition
+
+		if (Math.abs(distance.x) > Math.abs(distance.y)) {
+			this.direction = new Point2i(Math.signum(distance.x) as Integer, 0)
+			this.wantedPosition.add(this.direction)
+		} else {
+			this.direction = new Point2i(0, Math.signum(distance.y) as Integer)
+			this.wantedPosition.add(this.direction)
+		}
+		
+		System.out.println("Seeking weapon direction : " + this.direction)
+	}
+	
+	def killingMove() {
+		var nearestZombie : Point2i
+		if (this.target.isEmpty) {
+			System.out.println("Killing move : Zombie")
+			nearestZombie = new Point2i(this.zombiesPosition.values().toArray().get(0) as Point2i)
+			
+			for (zombie : this.zombiesPosition.keySet) {
+				if (this.currentPosition.distance(nearestZombie) >
+					this.currentPosition.distance(this.zombiesPosition.get(zombie))) {
+					nearestZombie = this.zombiesPosition.get(zombie)
+				}
+			}
+		}
+		else {
+			System.out.println("Killing move : Target")
+			nearestZombie = new Point2i(this.target.values().toArray().get(0) as Point2i)
+			
+			for (zombie : this.target.keySet) {
+				if (this.currentPosition.distance(nearestZombie) > this.currentPosition.distance(this.target.get(zombie))) {
+					nearestZombie = this.target.get(zombie)
+				}
+			}
+		}
+
+		System.out.println("Nearest zombie pos : " + nearestZombie)
+		if(this.target.isEmpty == false && (this.currentPosition.x == nearestZombie.x || this.currentPosition.y == nearestZombie.y)) {
+			System.out.println("DIRECTION WHEN KILLING : " + (this.direction))
+			this.isKillEmited = true
+			emit(new Kill(nearestZombie))
+		}
+		else {
+			var distance = nearestZombie - this.currentPosition
+
+			if (Math.abs(distance.y) > Math.abs(distance.x) && this.currentPosition.x != nearestZombie.x ||
+				(Math.abs(distance.x) > Math.abs(distance.y) && this.currentPosition.y == nearestZombie.y)) {
+				System.out.println("Je sais pas")
+				System.out.println("Distance x : " + distance.x + " / Distance y: " + distance.y +  " / Current " + this.currentPosition + " / Zombie : " + nearestZombie)
+				this.direction = new Point2i(Math.signum(distance.x) as Integer, 0)
+				this.wantedPosition.add(this.direction)
+			} else {
+				System.out.println("Faire de conditions ?")
+				this.direction = new Point2i(0, Math.signum(distance.y) as Integer)
+				this.wantedPosition.add(this.direction)
+			}
 		}
 	}
 }

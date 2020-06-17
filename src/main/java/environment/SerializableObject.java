@@ -38,6 +38,7 @@ public abstract class SerializableObject implements Serializable {
 	private static final long serialVersionUID = -2687900803025474730L;
 
 	private final Point2i position;
+	private Boolean obstructView = true;
 	
 	
 	SerializableObject(int x, int y) {
@@ -80,19 +81,11 @@ public abstract class SerializableObject implements Serializable {
 		this.position.set(x, y);
 	}
 
-	/** Replies the maze in which this object is located.
-	 * 
-	 * @return the maze.
-	 */
+	public boolean getObstructView() {
+		return this.obstructView;
+	}
 
-	/** Replies if this object occludes other objects during the agent's perception.
-	 */
-	
-	public abstract boolean isOccluder();
-	
-	/** Replies if this object could be pick by the agents.
-	 */
-	
-	public abstract boolean isPickable();
-
+	public void setObstructView(boolean b) {
+		this.obstructView = b;
+	}
 }

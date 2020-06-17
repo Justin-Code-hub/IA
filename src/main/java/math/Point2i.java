@@ -74,6 +74,13 @@ public class Point2i extends Tuple2i<Point2i> {
 	      dy = this.y-p1.getY();
 	      return (dx*dx+dy*dy);
 	}
+	
+	public float distanceSquared(Point2f p1) {
+	      float dx, dy;
+	      dx = this.x-p1.getX();  
+	      dy = this.y-p1.getY();
+	      return (dx*dx+dy*dy);
+	}
 
 	/**
 	 * Computes the distance between this point and point p1.
@@ -86,6 +93,10 @@ public class Point2i extends Tuple2i<Point2i> {
 	      dx = this.x-p1.getX();  
 	      dy = this.y-p1.getY();
 	      return (float)Math.sqrt(dx*dx+dy*dy);
+	}
+	
+	public int distanceM(Point2i p1) {
+		return Math.abs(this.x - p1.getX()) + Math.abs(this.y - p1.getY()); 
 	}
 
 	/**
@@ -120,7 +131,17 @@ public class Point2i extends Tuple2i<Point2i> {
 		this.x = t1.getX() + t2.getX();
 		this.y = t1.getY() + t2.getY();
 	}
-
+	
+	public void add(Point2i t1, Point2i t2) {
+		this.x = t1.getX() + t2.getX();
+		this.y = t1.getY() + t2.getY();
+	}
+	
+	public void add(Point2i t1) {
+		this.x += t1.getX();
+		this.y += t1.getY();
+	}
+	
 	/**
 	 * Sets the value of this tuple to the sum of tuples t1 and t2.
 	 * @param t1 the first tuple
@@ -252,6 +273,12 @@ public class Point2i extends Tuple2i<Point2i> {
 		r.add(this, v);
 		return r;
 	}
+	
+	public Point2i operator_plus(Point2i p) {
+		Point2i r = new Point2i();
+		r.add(this, p);
+		return r;
+	}
 
 	/** Sum of vectors: this += v.
 	 * It is equivalent to {@code this.add(v)}.
@@ -263,6 +290,10 @@ public class Point2i extends Tuple2i<Point2i> {
 	@Inline(value = "$1.add($2)")
 	public void operator_add(Vector2i v) {
 		add(v);
+	}
+	
+	public void operator_add(Point2i p) {
+		add(p);
 	}
 
 	/** Subtract of vectors: r = this - v.
@@ -373,5 +404,9 @@ public class Point2i extends Tuple2i<Point2i> {
 		}
 		return this;
 	}
-
+	
+	//Dot product
+	public int multiply(Point2i p) {
+		return Math.abs(this.x * p.getY() - this.y * p.getX());
+	}
 }

@@ -5,6 +5,7 @@ package environment
 
 import math.Point2i
 import java.util.UUID
+import dataStructure.Direction
 
 /** 
  * @author Justin
@@ -14,11 +15,21 @@ capacity Bodies {
 	
 	def createZombie(x : int, y : int) : Zombie
 	def createZombie(position : Point2i) : Zombie
-	def createZombie(position : Point2i, id : UUID) :Zombie
+	def createZombie(position : Point2i, id : UUID) : Zombie
+	def createZombie(position : Point2i, id : UUID, direction : Point2i) : Zombie
 
 	def createHuman(x : int, y : int) : Human
 	def createHuman(position : Point2i) : Human
 	def createHuman(position : Point2i, id : UUID) : Human
+	def createHuman(position : Point2i, id : UUID, direction : Point2i) : Human
+
+	def createWall(x : int, y : int) : Wall
+	def createWall(position : Point2i) : Wall
+
+	def createWeapon(x : int, y : int) : Weapon
+	def createWeapon(position : Point2i) : Weapon
+	def createWeapon(x : int, y : int, id : UUID) : Weapon
+	def createWeapon(position : Point2i, id : UUID) : Weapon
 
 }
 
@@ -36,6 +47,10 @@ skill BodiesSkill implements Bodies{
 		return new Zombie(position, id)
 	}
 	
+	def createZombie(position : Point2i, id : UUID, direction : Point2i) : Zombie {
+		return new Zombie(position, id, direction)
+	} 
+	
 	def createHuman(x : int, y : int) : Human {
 		return new Human(x, y, UUID.randomUUID())
 	}
@@ -47,4 +62,33 @@ skill BodiesSkill implements Bodies{
 	def createHuman(position : Point2i, id : UUID) : Human {
 		return new Human(position, id)
 	}
+
+	def createHuman(position : Point2i, id : UUID, direction : Point2i) : Human {
+		return new Human(position, id, direction)
+	}
+	
+	def createWall(x : int, y : int) : Wall {
+		return new Wall(x, y)
+	}
+	
+	def createWall(position : Point2i) : Wall {
+		return new Wall(position)
+	}
+
+	def createWeapon(x : int, y : int) : Weapon{
+		return new Weapon(x, y, UUID.randomUUID())
+	}
+
+	def createWeapon(position : Point2i) : Weapon {
+		return new Weapon(position, UUID.randomUUID())
+	}
+
+	def createWeapon(x : int, y : int, id : UUID) : Weapon {
+		return new Weapon(x, y, id)
+	}
+
+	def createWeapon(position : Point2i, id : UUID) : Weapon {
+		return new Weapon(position, id)
+	}
+	
 }
