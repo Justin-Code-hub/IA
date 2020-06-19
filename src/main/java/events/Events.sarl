@@ -78,14 +78,16 @@ event UpdateGUI{
 	val nbZombies : int
 	val points : List<Point2i>
 	val nbSteps : int
+	val nbWeapons : int
 	
 	new (objects : HashMap<Point2i,SerializableObject>, nbHumans : int, nbZombies : int, points : List<Point2i>,
-		nbSteps : int) {
+		nbSteps : int, nbWeapons : int) {
 		this.objects = objects
 		this.nbHumans = nbHumans
 		this.nbZombies = nbZombies
 		this.points = points
 		this.nbSteps = nbSteps
+		this.nbWeapons = nbWeapons
 	}
 }
 

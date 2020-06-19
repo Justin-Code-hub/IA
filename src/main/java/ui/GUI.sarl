@@ -22,6 +22,10 @@ import javafx.scene.shape.Rectangle
 import javafx.scene.shape.Line
 import javafx.scene.text.Text
 import javafx.scene.text.Font
+import javafx.scene.control.Button
+import javafx.^event.EventHandler
+import javafx.^event.ActionEvent
+
 import environment.Human
 import environment.Zombie
 import environment.Body
@@ -41,6 +45,11 @@ class GUI extends Application {
 	val launched = new AtomicBoolean(false)
 	var initialized = false
 	var group = new Group()
+	var simulationLaunched = true
+	
+	var humans = 1
+	var zombies = 1
+	var weapons = 0
 	
 	static def getGUI : GUI {
 		if(gui == null){
@@ -71,7 +80,8 @@ class GUI extends Application {
 		this.primaryStage.scene = scene
 		this.primaryStage.show
 		
-		informations(0, 0, 0)
+		informations(1, 1, 0, 0)
+		buttons
 		this.initialized = true
 		
 	}
@@ -80,7 +90,7 @@ class GUI extends Application {
 		this.primaryStage.title = title
 	}
 	
-	def informations(nbHumans : int, nbZombies : int, nbSteps : int) {
+	def informations(nbHumans : int, nbZombies : int, nbSteps : int, nbWeapons : int) {
 		var rectangle = new Rectangle(160, 960, Color.DARKGRAY)
 		rectangle.setX(960)
 		rectangle.setY(0)
@@ -97,23 +107,125 @@ class GUI extends Application {
 		textHumans.setFont(new Font(15))
 		textHumans.setFill(Color.BLACK)
 		textHumans.setX(960 + 80 - textHumans.getBoundsInLocal.getWidth / 2)
-		textHumans.setY(60)
+		textHumans.setY(80)
 		this.group.getChildren.add(textHumans)
-
+		
 		var textZombies = new Text("Number of zombies : " + nbZombies)
 		textZombies.setFont(new Font(15))
 		textZombies.setFill(Color.BLACK)
 		textZombies.setX(960 + 80 - textZombies.getBoundsInLocal.getWidth / 2)
-		textZombies.setY(100)
-		this.group.getChildren.add(textZombies)	
+		textZombies.setY(140)
+		this.group.getChildren.add(textZombies)
+
+		var textWeapons = new Text("Number of weapons: " + nbWeapons)
+		textWeapons.setFont(new Font(15))
+		textWeapons.setFill(Color.BLACK)
+		textWeapons.setX(960 + 80 - textWeapons.getBoundsInLocal.getWidth / 2)
+		textWeapons.setY(200)
+		this.group.getChildren.add(textWeapons)
 		
 	}
 	
-	def setScene(objects : HashMap<Point2i, SerializableObject>, nbHumans : int, nbZombies : int, points : List<Point2i>, nbSteps : int){
+	def buttons {
+		var buttonLaunch = new Button("Launch")
+		buttonLaunch.setMinWidth(80)
+		buttonLaunch.setLayoutX(960 + 80 - 80/ 2)
+		buttonLaunch.setLayoutY(260)
+		this.group.getChildren.add(buttonLaunch)
+		
+		buttonLaunch.setOnAction[e : ActionEvent |
+			this.simulationLaunched = true
+		]
+
+		var buttonIncHuman = new Button("+")
+		buttonIncHuman.setMinWidth(20)
+		buttonIncHuman.setLayoutX(960 + 80)
+		buttonIncHuman.setLayoutY(80 + 5)
+		this.group.getChildren.add(buttonIncHuman)
+
+		buttonIncHuman.setOnAction [ e : ActionEvent |
+			this.humans ++
+			informations(this.humans, this.zombies, 0, this.weapons)
+			buttons
+		]
+
+		var buttonDecHuman = new Button("-")
+		buttonDecHuman.setMinWidth(20)
+		buttonDecHuman.setLayoutX(960 + 80 - 20)
+		buttonDecHuman.setLayoutY(80 + 5)
+		this.group.getChildren.add(buttonDecHuman)
+
+		buttonDecHuman.setOnAction [ e : ActionEvent |
+			if(this.humans > 1 ) {
+				this.humans--
+				informations(this.humans, this.zombies, 0, this.weapons)
+				buttons
+			}
+		]
+		
+		var buttonIncZombie = new Button("+")
+		buttonIncZombie.setMinWidth(20)
+		buttonIncZombie.setLayoutX(960 + 80)
+		buttonIncZombie.setLayoutY(140 + 5)
+		this.group.getChildren.add(buttonIncZombie)
+
+		buttonIncZombie.setOnAction [ e : ActionEvent |
+			this.zombies++
+			informations(this.humans, this.zombies, 0, this.weapons)
+			buttons
+		]
+		
+		var buttonDecZombie = new Button("-")
+		buttonDecZombie.setMinWidth(20)
+		buttonDecZombie.setLayoutX(960 + 80 - 20)
+		buttonDecZombie.setLayoutY(140 + 5)
+		this.group.getChildren.add(buttonDecZombie)
+
+		buttonDecZombie.setOnAction [ e : ActionEvent |
+			if(this.zombies > 1) {
+				this.zombies--
+				informations(this.humans, this.zombies, 0, this.weapons)
+				buttons
+			}
+		]
+		
+		var buttonIncWeapon = new Button("+")
+		buttonIncWeapon.setMinWidth(20)
+		buttonIncWeapon.setLayoutX(960 + 80)
+		buttonIncWeapon.setLayoutY(200 + 5)
+		this.group.getChildren.add(buttonIncWeapon)
+
+		buttonIncWeapon.setOnAction [ e : ActionEvent |
+			this.weapons++
+			informations(this.humans, this.zombies, 0, this.weapons)
+			buttons
+		]
+		
+		var buttonDecWeapon = new Button("-")
+		buttonDecWeapon.setMinWidth(20)
+		buttonDecWeapon.setLayoutX(960 + 80 - 20)
+		buttonDecWeapon.setLayoutY(200 + 5)
+		this.group.getChildren.add(buttonDecWeapon)
+
+		buttonDecWeapon.setOnAction [ e : ActionEvent |
+			if(this.weapons > 0) {
+				this.weapons--
+				informations(this.humans, this.zombies, 0, this.weapons)
+				buttons
+			}
+		]
+
+	}
+	
+	def setScene(objects : HashMap<Point2i, SerializableObject>, nbHumans : int, nbZombies : int, points : List<Point2i>, nbSteps : int, nbWeapons : int){
 		var bodies : ArrayList<Body> = newArrayList
 		this.group.getChildren.clear
 
-		informations(nbHumans, nbZombies, nbSteps)
+		informations(nbHumans, nbZombies, nbSteps, nbWeapons)
+		if (this.simulationLaunched == false) {
+			buttons			
+		}
+
 		
 		for (objectPosition : objects.keySet){
 			if(objects.get(objectPosition) instanceof Body) {
@@ -130,10 +242,10 @@ class GUI extends Application {
 					BODY_SIZE / 2, Color.GREEN)
 				System.out.println("POINTS : " + points)
 				try {
-					var l1 = new Line(circle.getCenterX, circle.getCenterY, points.get(0).getX * 32, points.get(0).getY * 32)
+					/*var l1 = new Line(circle.getCenterX, circle.getCenterY, points.get(0).getX * 32, points.get(0).getY * 32)
 					var l2 = new Line(circle.getCenterX, circle.getCenterY, points.get(1).getX * 32, points.get(1).getY * 32)
 					this.group.getChildren.add(l1)
-					this.group.getChildren.add(l2)
+					this.group.getChildren.add(l2)*/
 				} catch (e : Exception) {
 					
 				}
@@ -157,5 +269,21 @@ class GUI extends Application {
 	
 	def getInitialized(){
 		return this.initialized
+	}
+	
+	def getSimulationLaunched{
+		return this.simulationLaunched
+	}
+
+	def getHumans {
+		return this.humans
+	}
+
+	def getZombies {
+		return this.zombies
+	}
+
+	def getWeapons {
+		return this.weapons
 	}
 }

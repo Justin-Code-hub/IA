@@ -10,6 +10,9 @@ import events.*
 import ui.GUI
 import java.io.FileWriter
 import java.io.IOException
+import java.util.ArrayList
+import java.util.HashMap
+import java.util.List
 
 agent test{
 	uses DefaultContextInteractions, Lifecycle, Logging
@@ -17,15 +20,16 @@ agent test{
 	var gui : GUI
 	var width = 30
 	var height = 30
+	
 	var nbHumans = 1
 	var nbZombies = 1
-	var nbWalls = 1
-	var nbWeapons = 1
-	
+	var nbWeapons = 0
+
+	var nbWalls = 0
 	var nb = 100
-	var i = 1
+	var i = 0
 	
-	var file = new FileWriter("Info.csv")
+	var file = new FileWriter("Info" + this.nbHumans + "_" + this.nbZombies + "_" + this.nbWeapons + ".csv")
 		
 	on Initialize {
 		gui = GUI.GUI
@@ -33,20 +37,12 @@ agent test{
 		Platform.runLater [
 			gui.launchGUI
 		]
-		
-		/*for(i : 1..<11){
-			for(j : 1..<11){
-				for(h : 0 ..< 10){
-					end = false
-					spawn(Environment, this.gui, this.width, this.height, i, j, 0, h)
-					emit(new Launch)
-					while(end == false){
-						// Wait
-					}
-				}
-			}
-		}*/
+
+		while (gui.getSimulationLaunched == false) {
+			Thread.sleep(1)
+		}
 		spawn(Environment, this.gui, this.width, this.height, this.nbHumans, this.nbZombies, this.nbWalls, this.nbWeapons)
+		//spawn(Environment, this.gui, this.width, this.height, gui.getHumans, gui.getZombies, 0, gui.getWeapons)
 		emit(new Launch)
 
 		try {
@@ -60,54 +56,40 @@ agent test{
 	
 	on UpdateGUI{
 		Platform.runLater [
-			gui.setScene(occurrence.objects, occurrence.nbHumans, occurrence.nbZombies, occurrence.points, occurrence.nbSteps)
+			gui.setScene(occurrence.objects, occurrence.nbHumans, occurrence.nbZombies, occurrence.points, occurrence.nbSteps, occurrence.nbWeapons)
 		]
 	}
 	
 	on End{
-		var winner : String
-		if (occurrence.nbHumans == occurrence.nbZombies){
-			winner = "Draw"
-		}
-		else if (occurrence.nbHumans > occurrence.nbZombies) {
-			winner = "Humans"
-		}
-		else{
-			winner = "Zombies"
-		}
-		try{
-			this.file.write(this.nbHumans + ";" + this.nbZombies + ";" + this.nbWeapons + ";" + occurrence.nbHumans + ";" + occurrence.nbZombies + ";" + occurrence.nbWeapons + ";" +
-				occurrence.nbSteps + ";" + winner + "\n")
-			System.out.println("FINIIIII")
+		emit(new KillEnvironment)
+		try {
+			var winner : String
+			if (occurrence.nbHumans == occurrence.nbZombies) {
+				winner = "Draw"
+			}
+			else if (occurrence.nbHumans > occurrence.nbZombies) {
+				winner = "Humans"
+			}
+			else{
+				winner = "Zombies"
+			}
+			file.write(this.nbHumans + ";" + this.nbZombies + ";" + this.nbWeapons + ";" + occurrence.nbHumans + ";" +
+				occurrence.nbZombies + ";" + occurrence.nbWeapons + ";" + occurrence.nbSteps + ";" + winner + "\n")
 		} catch (e : IOException) {
 			info(e)
 		}
-		emit(new KillEnvironment)
-		if(this.i == this.nb){
-			this.i = 1
-			if(this.nbHumans < 2) {
-				this.nbHumans ++
-			}
-			else if (this.nbZombies < 2) {
-				this.nbZombies ++
-				this.nbHumans = 1
-			}
-			else if(this.nbWeapons < 2) {
-				this.nbWeapons ++
-				this.nbZombies = 1
-			}
-			else {
-				file.close
-				killMe
-			}
+		this.i ++
+		if (i < 100) {
+			// spawn(Environment, this.gui, this.width, this.height, gui.getHumans, gui.getZombies, 0, gui.getWeapons)
+			spawn(Environment, this.gui, this.width, this.height, this.nbHumans, this.nbZombies, this.nbWalls,
+				this.nbWeapons)
+			emit(new Launch)
+			System.out.println("Simple")
 		}
-		else {
-			this.i ++
-		}	
-		
-		spawn(Environment, this.gui, this.width, this.height, this.nbHumans, this.nbZombies, this.nbWalls,
-			this.nbWeapons)
-		emit(new Launch)
+		else{
+			System.out.println("Close")
+			file.close
+		}
 	}
 
 }
