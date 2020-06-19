@@ -28,9 +28,8 @@
 - Create glass
 
 ## Bug  :
-- When two zombies want to are at the same distance from an human and want to go to the human position they will collide and there will never be a solution at the moment
+- When two zombies are at the same distance from an human and want to go to the human position they will collide and there will never be a solution at the moment
 - Infinite loop when trying to resolve conflict (very rare)
-- When two entity try to kill another entity there will be a bug because an entity can only be killed once
 
 ## How to launch the simulation :
 Click on test.sarl -> run as -> sarl agent
