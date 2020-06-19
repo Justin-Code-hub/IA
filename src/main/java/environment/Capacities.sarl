@@ -5,7 +5,6 @@ package environment
 
 import math.Point2i
 import java.util.UUID
-import dataStructure.Direction
 
 /** 
  * @author Justin

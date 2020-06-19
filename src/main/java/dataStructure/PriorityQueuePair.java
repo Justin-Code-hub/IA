@@ -1,7 +1,5 @@
 package dataStructure;
 
-import java.util.Comparator;
-import javafx.util.*;
 import math.Point2i;
 
 public class PriorityQueuePair implements Comparable<PriorityQueuePair>{

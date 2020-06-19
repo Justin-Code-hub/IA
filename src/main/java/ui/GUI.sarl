@@ -7,16 +7,16 @@ package ui
  * @author Justin
  * 
  */
+
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+
+import javafx.application.Platform
 import javafx.application.Application
 import javafx.stage.Stage
-import javafx.scene.Group
 import javafx.scene.Scene;
-import java.util.concurrent.Executors
-import javafx.application.Platform
-import java.util.concurrent.atomic.AtomicBoolean
+import javafx.scene.Group
 import javafx.scene.paint.Color
-import java.util.ArrayList
-
 import javafx.scene.shape.Circle
 import javafx.scene.shape.Rectangle
 import javafx.scene.shape.Line
@@ -29,12 +29,14 @@ import javafx.^event.ActionEvent
 import environment.Human
 import environment.Zombie
 import environment.Body
-import dataStructure.Direction
-import java.util.List
 import math.Point2i
 import environment.SerializableObject
-import java.util.HashMap
 import environment.Weapon
+
+import java.util.List
+import java.util.HashMap
+import java.util.ArrayList
+
 
 class GUI extends Application {
 
@@ -45,7 +47,7 @@ class GUI extends Application {
 	val launched = new AtomicBoolean(false)
 	var initialized = false
 	var group = new Group()
-	var simulationLaunched = true
+	var simulationLaunched = false
 	
 	var humans = 1
 	var zombies = 1
@@ -240,21 +242,11 @@ class GUI extends Application {
 			else if (objects.get(objectPosition) instanceof Zombie) {
 				circle = new Circle(BODY_SIZE * (objectPosition.x + 0.5), BODY_SIZE * (objectPosition.y + 0.5),
 					BODY_SIZE / 2, Color.GREEN)
-				System.out.println("POINTS : " + points)
-				try {
-					/*var l1 = new Line(circle.getCenterX, circle.getCenterY, points.get(0).getX * 32, points.get(0).getY * 32)
-					var l2 = new Line(circle.getCenterX, circle.getCenterY, points.get(1).getX * 32, points.get(1).getY * 32)
-					this.group.getChildren.add(l1)
-					this.group.getChildren.add(l2)*/
-				} catch (e : Exception) {
-					
-				}
 			}
 			else if (objects.get(objectPosition) instanceof Weapon) {
 				circle = new Circle(BODY_SIZE * (objectPosition.x + 0.5), BODY_SIZE * (objectPosition.y + 0.5),
 					BODY_SIZE / 2, Color.YELLOW)
 			}
-			System.out.println("GUI : " + objectPosition + " / Obj : " + objects.get(objectPosition))
 			this.group.getChildren.add(circle)
 		}
 	

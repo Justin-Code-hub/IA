@@ -71,7 +71,6 @@ event PickWeapon {
 	}
 }
 
-
 event UpdateGUI{
 	val objects : HashMap<Point2i, SerializableObject>
 	val nbHumans : int

@@ -2,7 +2,6 @@ package environment;
 
 import java.util.UUID;
 
-import dataStructure.Direction;
 import math.Point2i;
 
 public class Zombie extends Body{

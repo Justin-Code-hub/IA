@@ -97,7 +97,7 @@ agent Environment {
 		while(this.nbHumans != 0 && this.nbZombies != 0) {
 			agentPerception
 			emit(new UpdateGUI(this.objects, this.nbHumans, this.nbZombies, this.points, this.nbSteps, this.nbWeapons))
-
+			Thread.sleep(500)
 			while(this.moveList.size != this.nbZombies + this.nbHumans || this.nbKill != 0) {
 				// Do nothing
 				Thread.sleep(1)

@@ -15,21 +15,15 @@ import java.util.HashMap
 import java.util.List
 
 agent test{
-	uses DefaultContextInteractions, Lifecycle, Logging
+	uses DefaultContextInteractions, Lifecycle
 	
 	var gui : GUI
 	var width = 30
 	var height = 30
-	
-	var nbHumans = 1
-	var nbZombies = 1
-	var nbWeapons = 0
 
 	var nbWalls = 0
-	var nb = 100
 	var i = 0
 	
-	var file = new FileWriter("Info" + this.nbHumans + "_" + this.nbZombies + "_" + this.nbWeapons + ".csv")
 		
 	on Initialize {
 		gui = GUI.GUI
@@ -41,17 +35,8 @@ agent test{
 		while (gui.getSimulationLaunched == false) {
 			Thread.sleep(1)
 		}
-		spawn(Environment, this.gui, this.width, this.height, this.nbHumans, this.nbZombies, this.nbWalls, this.nbWeapons)
-		//spawn(Environment, this.gui, this.width, this.height, gui.getHumans, gui.getZombies, 0, gui.getWeapons)
+		spawn(Environment, this.gui, this.width, this.height, gui.getHumans, gui.getZombies, 0, gui.getWeapons)
 		emit(new Launch)
-
-		try {
-			file.write(
-				"nbHumans" + ";" + "nbZombies" + ";" + "nbWeapons" + ";" + "nbHumans remaining"+ ";" +
-				"nbZombies remaining"+ ";" + "nbWeapons remaining" + ";" + "nbSteps" + ";" + "winner" + "\n")
-		} catch (e : IOException) {
-			info(e)
-		}
 	}
 	
 	on UpdateGUI{
@@ -62,34 +47,7 @@ agent test{
 	
 	on End{
 		emit(new KillEnvironment)
-		try {
-			var winner : String
-			if (occurrence.nbHumans == occurrence.nbZombies) {
-				winner = "Draw"
-			}
-			else if (occurrence.nbHumans > occurrence.nbZombies) {
-				winner = "Humans"
-			}
-			else{
-				winner = "Zombies"
-			}
-			file.write(this.nbHumans + ";" + this.nbZombies + ";" + this.nbWeapons + ";" + occurrence.nbHumans + ";" +
-				occurrence.nbZombies + ";" + occurrence.nbWeapons + ";" + occurrence.nbSteps + ";" + winner + "\n")
-		} catch (e : IOException) {
-			info(e)
-		}
-		this.i ++
-		if (i < 100) {
-			// spawn(Environment, this.gui, this.width, this.height, gui.getHumans, gui.getZombies, 0, gui.getWeapons)
-			spawn(Environment, this.gui, this.width, this.height, this.nbHumans, this.nbZombies, this.nbWalls,
-				this.nbWeapons)
-			emit(new Launch)
-			System.out.println("Simple")
-		}
-		else{
-			System.out.println("Close")
-			file.close
-		}
+		killMe
 	}
 
 }
